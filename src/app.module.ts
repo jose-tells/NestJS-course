@@ -1,25 +1,29 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { CategoriesController } from './controllers/categories/categories.controller';
-import { OrdersController } from './controllers/orders/orders.controller';
-import { UsersController } from './controllers/users/users.controller';
-import { ProductsController } from './controllers/products/products.controller';
-import { CustomersController } from './controllers/customers/customers.controller';
-import { BrandsController } from './controllers/brands/brands.controller';
-import { ProductsService } from './services/products/products.service';
+import { ConfigModule } from '@nestjs/config';
+import * as Joi from 'joi';
+
+import { ProductsModule } from './products/products.module';
+import { UsersModule } from './users/users.module';
+import { DatabaseModule } from './database/database.module';
+import { environments } from './utils/environments';
+import config from './utils/config';
 
 @Module({
-  imports: [],
-  controllers: [
-    AppController,
-    CategoriesController,
-    OrdersController,
-    UsersController,
-    ProductsController,
-    CustomersController,
-    BrandsController,
+  imports: [
+    ConfigModule.forRoot({
+      envFilePath:
+        environments[String(process.env.NODE_ENV).toLowerCase()] || '.env',
+      load: [config],
+      isGlobal: true,
+      validationSchema: Joi.object({
+        API_KEY: Joi.number().required(),
+        DATABASE_NAME: Joi.string().required(),
+        DATABASE_PORT: Joi.number().required(),
+      }),
+    }),
+    ProductsModule,
+    UsersModule,
+    DatabaseModule,
   ],
-  providers: [AppService, ProductsService],
 })
 export class AppModule {}

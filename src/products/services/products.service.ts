@@ -1,9 +1,14 @@
-import { NotFoundException, Injectable } from '@nestjs/common';
-import { CreateProductsDto, UpdateProductsDto } from 'src/dtos/products.dto';
-import { Product } from 'src/entities/product.entity';
+import { NotFoundException, Injectable, Inject } from '@nestjs/common';
+import { CreateProductsDto, UpdateProductsDto } from '../dtos/products.dto';
+import { Product } from 'src/products/entities/product.entity';
+import { ConfigType } from '@nestjs/config';
+import config from 'src/utils/config';
 
 @Injectable()
 export class ProductsService {
+  constructor(
+    @Inject(config.KEY) private configService: ConfigType<typeof config>,
+  ) {}
   private counterId = 1;
 
   private products: Product[] = [
@@ -13,11 +18,18 @@ export class ProductsService {
       description: 'A musical instrument',
       price: 100,
       stock: 4,
-      image: '',
+      image: 'google.com',
     },
   ];
 
   findAll() {
+    const apiKey = this.configService.apiKey;
+    const dbName = this.configService.database.name;
+    const dbPort = this.configService.database.dbPort;
+
+    console.log(
+      `Database ${dbName} with apiKey: ${apiKey} is running in port ${dbPort}`,
+    );
     return this.products;
   }
 
