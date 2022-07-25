@@ -1,40 +1,43 @@
-import { NotFoundException, Injectable, Inject } from '@nestjs/common';
+import { Model, FilterQuery } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+
+import { NotFoundException, Injectable } from '@nestjs/common';
 import { CreateProductsDto, UpdateProductsDto } from '../dtos/products.dto';
 import { Product } from 'src/products/entities/product.entity';
-import { ConfigType } from '@nestjs/config';
-import config from 'src/utils/config';
-
+import { FilterQueryDto } from '../dtos/filter.dto';
 @Injectable()
 export class ProductsService {
   constructor(
-    @Inject(config.KEY) private configService: ConfigType<typeof config>,
+    @InjectModel(Product.name) private productModel: Model<Product>,
   ) {}
-  private counterId = 1;
+  findAll(query: FilterQueryDto) {
+    if (!query) {
+      const products = this.productModel.find().exec();
+      return products;
+    }
 
-  private products: Product[] = [
-    {
-      id: 1,
-      name: 'Guitar',
-      description: 'A musical instrument',
-      price: 100,
-      stock: 4,
-      image: 'google.com',
-    },
-  ];
+    const filters: FilterQuery<Product> = {};
 
-  findAll() {
-    const apiKey = this.configService.apiKey;
-    const dbName = this.configService.database.name;
-    const dbPort = this.configService.database.dbPort;
+    const { limit, offset, minPrice, maxPrice } = query;
 
-    console.log(
-      `Database ${dbName} with apiKey: ${apiKey} is running in port ${dbPort}`,
-    );
-    return this.products;
+    if (minPrice && maxPrice) {
+      filters.price = { $gte: minPrice, $lte: maxPrice };
+    }
+
+    const filteredProducts = this.productModel
+      .find(filters)
+      .populate('brand')
+      .skip(offset)
+      .limit(limit)
+      .exec();
+    return filteredProducts;
   }
 
-  findOne(id: number) {
-    const product = this.products.find((item) => item.id === id);
+  async findOne(id: string) {
+    const product = await this.productModel
+      .findById(id)
+      .populate('brand')
+      .exec();
 
     if (!product) {
       throw new NotFoundException(`Product with id: ${id} not found`);
@@ -43,45 +46,28 @@ export class ProductsService {
     return product;
   }
 
-  create(payload: CreateProductsDto) {
-    this.counterId = this.counterId + 1;
-
-    const newProduct = {
-      id: this.counterId,
-      ...payload,
-    };
-
-    this.products.push(newProduct);
-
+  async create(payload: CreateProductsDto) {
+    const newProduct = await this.productModel.create(payload);
     return newProduct;
   }
 
-  update(id: number, payload: UpdateProductsDto) {
-    const product = this.findOne(id);
+  async update(id: string, payload: UpdateProductsDto) {
+    const product = await this.productModel
+      .findByIdAndUpdate(id, { $set: payload }, { new: true })
+      .exec();
 
     if (!product) {
       throw new NotFoundException(`Product with id: ${id} not found`);
     }
 
-    const index = this.products.findIndex((item) => item.id === id);
-
-    this.products[index] = {
-      ...product,
-      ...payload,
-    };
-
-    return this.products[index];
+    return product;
   }
 
-  delete(id: number) {
-    const index = this.products.findIndex((item) => item.id === id);
-
-    if (index === -1) {
+  async delete(id: string) {
+    const product = await this.productModel.findByIdAndDelete(id).exec();
+    if (!product) {
       throw new NotFoundException(`Product with id: ${id} not found`);
     }
-
-    this.products.splice(index, 1);
-
-    return true;
+    return product;
   }
 }

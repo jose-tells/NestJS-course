@@ -1,4 +1,3 @@
-import { ParseIntPipe } from './../../common/parse-int.pipe';
 import {
   Body,
   Controller,
@@ -13,6 +12,7 @@ import {
 import { CreateUsersDto, UpdateUsersDto } from '../dtos/users.dto';
 import { UsersService } from '../services/users/users.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { MongoIdPipe } from 'src/common/mongo-id.pipe';
 
 @ApiTags('Users')
 @Controller('users')
@@ -22,8 +22,8 @@ export class UsersController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all users' })
-  getUsers() {
-    const users = this.usersService.findAll();
+  async getUsers() {
+    const users = await this.usersService.findAll();
 
     return {
       message: 'Users listed',
@@ -32,41 +32,41 @@ export class UsersController {
   }
 
   @Get(':id')
-  getUserById(@Param('id', ParseIntPipe) id: number) {
-    const user = this.usersService.findOne(id);
+  async getUserById(@Param('id', MongoIdPipe) id: string) {
+    const user = await this.usersService.findOne(id);
 
     return {
-      message: `User with id: ${id} listed`,
+      message: `User listed with id: ${id} `,
       body: user,
     };
   }
 
-  @Get(':id/orders')
-  getOrders(@Param('id', ParseIntPipe) id: number) {
-    const userOrders = this.usersService.getOrdersByUser(id);
+  // @Get(':id/orders')
+  // getOrders(@Param('id', ParseIntPipe) id: number) {
+  //   const userOrders = this.usersService.getOrdersByUser(id);
 
-    return {
-      message: `Orders from user #${id} listed`,
-      body: userOrders,
-    };
-  }
+  //   return {
+  //     message: `Orders from user #${id} listed`,
+  //     body: userOrders,
+  //   };
+  // }
 
   @Post()
-  createUser(@Body() payload: CreateUsersDto) {
-    const userCreated = this.usersService.create(payload);
+  async createUser(@Body() payload: CreateUsersDto) {
+    const userCreated = await this.usersService.create(payload);
 
     return {
-      message: `Created user with id: ${userCreated.id}`,
+      message: `Created user with id: ${userCreated._id}`,
       body: userCreated,
     };
   }
 
   @Put(':id')
-  updateUser(
-    @Param('id', ParseIntPipe) id: number,
+  async updateUser(
+    @Param('id', MongoIdPipe) id: string,
     @Body() payload: UpdateUsersDto,
   ) {
-    const updatedUser = this.usersService.update(id, payload);
+    const updatedUser = await this.usersService.update(id, payload);
 
     return {
       message: `Updated user with id: ${id}`,
@@ -75,11 +75,12 @@ export class UsersController {
   }
 
   @Delete(':id')
-  deleteUser(@Param('id', ParseIntPipe) id: number) {
-    this.usersService.delete(id);
+  async deleteUser(@Param('id', MongoIdPipe) id: string) {
+    const userDeleted = await this.usersService.delete(id);
 
     return {
       message: `Deleted user with id: ${id}`,
+      body: userDeleted,
     };
   }
 }
