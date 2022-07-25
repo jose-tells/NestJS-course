@@ -1,3 +1,6 @@
+import { ApiTags } from '@nestjs/swagger';
+import { MongoIdPipe } from 'src/common/mongo-id.pipe';
+
 import {
   Body,
   Controller,
@@ -9,12 +12,11 @@ import {
   HttpStatus,
   // Res,
   Get,
+  Query,
   // ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { ParseIntPipe } from 'src/common/parse-int.pipe';
 import { CreateProductsDto, UpdateProductsDto } from '../dtos/products.dto';
-// import { Response } from 'express';
+import { FilterQueryDto } from '../dtos/filter.dto';
 import { ProductsService } from '../services/products.service';
 
 @ApiTags('Products')
@@ -23,46 +25,55 @@ export class ProductsController {
   constructor(private productsService: ProductsService) {}
 
   @Get()
-  getProducts() {
-    return this.productsService.findAll();
+  async getProducts(@Query() query: FilterQueryDto) {
+    const products = await this.productsService.findAll(query);
+    return {
+      message: 'Products Listed',
+      body: products,
+    };
   }
 
   @Get(':id')
-  getProductById(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.findOne(id);
+  async getProductById(@Param('id', MongoIdPipe) id: string) {
+    const product = await this.productsService.findOne(id);
+    return {
+      message: `Product listed with id: ${id}`,
+      body: product,
+    };
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  createProduct(@Body() payload: CreateProductsDto) {
-    const productCreated = this.productsService.create(payload);
+  async createProduct(@Body() payload: CreateProductsDto) {
+    const productCreated = await this.productsService.create(payload);
 
     return {
-      message: `Product created with id: ${productCreated.id}`,
+      message: `Product created with id: ${productCreated._id}`,
       body: productCreated,
     };
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.CREATED)
-  updateProduct(
-    @Param('id', ParseIntPipe) id: number,
+  async updateProduct(
+    @Param('id', MongoIdPipe) id: string,
     @Body() payload: UpdateProductsDto,
   ) {
-    const productUpdated = this.productsService.update(id, payload);
-
+    const productUpdated = await this.productsService.update(id, payload);
     return {
-      message: `Updating file with id: ${id}`,
+      message: `Updated file with id: ${id}`,
       body: productUpdated,
     };
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  deleteProduct(@Param('id', ParseIntPipe) id: number) {
+  async deleteProduct(@Param('id', MongoIdPipe) id: string) {
+    const productDeleted = await this.productsService.delete(id);
+
     return {
-      message: `Successfully deleted product with id: ${id}`,
-      body: this.productsService.delete(id),
+      message: `Successfully deleted product with id: ${productDeleted._id}`,
+      body: productDeleted,
     };
   }
 }

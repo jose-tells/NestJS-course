@@ -1,5 +1,13 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { CreateSkillsDto } from './skills.dto';
 
 export class CreateUsersDto {
   @IsString()
@@ -18,6 +26,12 @@ export class CreateUsersDto {
   @IsString()
   @IsNotEmpty()
   readonly role: 'admin' | 'client';
+
+  @IsArray()
+  @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSkillsDto)
+  readonly skills: CreateSkillsDto[];
 }
 
 export class UpdateUsersDto extends PartialType(CreateUsersDto) {}
